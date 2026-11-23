@@ -1,0 +1,17 @@
+services:
+  licensing:
+    build:
+      context: ..
+      dockerfile: license_server/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:8088"
+    environment:
+      LICENSE_ADMIN_TOKEN: ${LICENSE_ADMIN_TOKEN:?Set a random admin token of at least 32 characters}
+      LICENSE_DB: /data/licenses.sqlite3
+    volumes:
+      - license-data:/data
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  license-data:

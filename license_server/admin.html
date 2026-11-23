@@ -1,0 +1,16 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><title>AutoMuseAI · Quản lý key</title>
+<style>body{font:16px system-ui;background:#101827;color:#e2e8f0;max-width:1100px;margin:35px auto;padding:20px}input,select,button{font:inherit;padding:9px;margin:5px;border-radius:6px}button{cursor:pointer}article{background:#1e293b;padding:15px;margin:12px 0;border-radius:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}label{display:inline-block}</style>
+<h1>AutoMuseAI · Quản lý key</h1>
+<label>Mật khẩu quản trị <input id="token" type="password" autocomplete="off"></label><button id="refresh">Xem danh sách</button>
+<h2>Tạo key mới</h2><input id="customer" placeholder="Tên khách hàng">
+<select id="days"><option value="30">30 ngày</option><option value="365">365 ngày</option><option value="">Vĩnh viễn</option></select>
+<label>Số máy <input id="seats" type="number" min="1" max="100" value="1"></label><button id="create">Tạo key</button>
+<pre id="message" role="status"></pre><section id="list"></section>
+<script>
+const el=id=>document.getElementById(id);
+async function api(path,method='GET',data){const r=await fetch(path,{method,headers:{Authorization:'Bearer '+el('token').value,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined,cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'Chưa thực hiện được');return d;}
+async function run(fn){try{await fn();}catch(e){el('message').textContent=e.message;}}
+async function refresh(){const rows=await api('/admin/licenses');el('list').replaceChildren();for(const r of rows){const a=document.createElement('article'),p=document.createElement('p');p.textContent=`${r.customer} · ${r.id} · ${r.revoked?'Đã khóa':'Hoạt động'} · Hạn: ${r.expires?new Date(r.expires*1000).toLocaleString():'Vĩnh viễn'} · Máy: ${r.used_devices}/${r.max_devices}`;a.append(p);function button(text,fn){const b=document.createElement('button');b.textContent=text;b.onclick=()=>run(async()=>{await fn();await refresh();el('message').textContent='Đã cập nhật.'});a.append(b);}button(r.revoked?'Mở khóa':'Khóa key',()=>api('/admin/licenses/'+r.id,'PATCH',{revoked:!r.revoked}));if(r.expires)button('Gia hạn 30 ngày',()=>api('/admin/licenses/'+r.id,'PATCH',{add_days:30}));button('Đặt lại máy',async()=>{if(confirm('Cho phép khách kích hoạt lại trên máy khác? Máy cũ có thể kích hoạt lại nếu còn key; hãy thu hồi key cũ và cấp key mới khi cần chặn máy cũ.'))await api('/admin/licenses/'+r.id+'/devices','DELETE');});el('list').append(a);}}
+el('refresh').onclick=()=>run(refresh);
+el('create').onclick=()=>run(async()=>{const d=await api('/admin/licenses','POST',{customer:el('customer').value,days:el('days').value?Number(el('days').value):null,max_devices:Number(el('seats').value)});el('message').textContent='Lưu key này để gửi khách (chỉ hiển thị một lần):\n'+d.key;await refresh();});
+</script></html>

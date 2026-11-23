@@ -1,0 +1,18 @@
+---
+description: Close older AutoMuseAI versions whenever opening the latest build for the user.
+alwaysApply: true
+---
+
+# Opening AutoMuseAI
+
+- User preference: whenever opening a newer AutoMuseAI build, close older
+  AutoMuseAI versions so the user cannot accidentally use the wrong window.
+- Select the newest successfully built versioned EXE in `dist`, excluding
+  installers and backup files; verify its version against `core/version.py`.
+- Close old versions gracefully via their main windows. Allow running workers
+  to stop/save normally; do not force-kill active generation or delete data.
+- If graceful closure remains blocked, inspect the old window before claiming
+  it is closed or starting competing jobs on the same browser profile.
+- Launch from the `dist` working directory to preserve the user's configuration.
+- Verify that the new version has a responding main window and that older
+  versions have exited. Leave unrelated apps and browsers alone.

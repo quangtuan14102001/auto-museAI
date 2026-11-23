@@ -1,0 +1,13 @@
+{
+  "app": {
+    "default_mode": "TEXT -> IMAGE",
+    "default_aspect_ratio": "16:9",
+    "default_video_duration": 5,
+    "default_timeout": 210,
+    "max_concurrent_tabs": 2,
+    "auto_new_chat": true
+  },
+  "profiles": [],
+  "aliases": [],
+  "tasks": []
+}

@@ -1,0 +1,5 @@
+**
+!license_server/
+!license_server/app.py
+!license_server/admin.html
+!license_server/requirements.txt
