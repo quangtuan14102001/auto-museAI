@@ -9,6 +9,7 @@ from core.film_project import shot_reference_assets
 from core.film_skills import skill_instruction, skill_provenance
 from utils.film_media import extract_frame_at
 from pathlib import Path
+from core.gemini_api import normalize_gemini_key, gemini_error
 
 
 def image_part(path):
@@ -23,7 +24,7 @@ def image_part(path):
 
 
 def review_shot(store, shot, config, stop=None):
-    key = config.get("gemini_api_key", "")
+    key = normalize_gemini_key(config.get("gemini_api_key", ""))
     if not key:
         raise ValueError("Cần API key Gemini để đối chiếu hình ảnh.")
     files, audit = shot_reference_assets(store, shot)
@@ -64,14 +65,17 @@ def review_shot(store, shot, config, stop=None):
         model = client._available_gemini_model()
     payload = {"contents": [{"parts": parts}], "generationConfig": {"temperature": 0}}
     def call(name):
-        return requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent",
-                             headers={"x-goog-api-key": key}, json=payload, timeout=90)
+        try:
+            return requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent",
+                                 headers={"x-goog-api-key": key}, json=payload, timeout=90, allow_redirects=False)
+        except requests.RequestException:
+            raise ValueError('Chưa kết nối được Gemini để đối chiếu. Kiểm tra mạng và thử lại.') from None
     response = call(model)
     if response.status_code == 404:
         model = client._available_gemini_model(exclude=model)
         response = call(model)
     if response.status_code != 200:
-        raise ValueError(f"Gemini chưa đối chiếu được hình ảnh (HTTP {response.status_code}).")
+        raise ValueError(gemini_error(response))
     raw = response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()

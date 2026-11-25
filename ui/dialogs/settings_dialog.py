@@ -5,6 +5,8 @@ from PyQt6.QtWidgets import (
     QFileDialog, QMessageBox, QFormLayout, QGroupBox, QCheckBox
 )
 from config.settings import SettingsManager
+from core.gemini_api import normalize_gemini_key
+from ui.gemini_key_panel import GeminiKeyPanel
 
 
 class SettingsDialog(QDialog):
@@ -107,9 +109,9 @@ class SettingsDialog(QDialog):
         self.combo_llm_prov.setCurrentText(self.settings.llm_config.get("provider", "gemini"))
         form_llm.addRow("Nhà cung cấp LLM chính:", self.combo_llm_prov)
 
-        self.txt_gemini_key = QLineEdit(self.settings.llm_config.get("gemini_api_key", ""))
-        self.txt_gemini_key.setEchoMode(QLineEdit.EchoMode.Password)
-        form_llm.addRow("Google Gemini API Key:", self.txt_gemini_key)
+        self.gemini_panel = GeminiKeyPanel(self.settings)
+        self.txt_gemini_key = self.gemini_panel.key
+        form_llm.addRow("Google Gemini API Key:", self.gemini_panel)
 
         self.txt_openai_key = QLineEdit(self.settings.llm_config.get("openai_api_key", ""))
         self.txt_openai_key.setEchoMode(QLineEdit.EchoMode.Password)
@@ -175,6 +177,14 @@ class SettingsDialog(QDialog):
             self.txt_output_dir.setText(d)
 
     def _save_settings(self):
+        if self.gemini_panel.checking:
+            QMessageBox.information(self, 'Đang kiểm tra key', 'Chờ kiểm tra key Gemini hoàn tất trước khi lưu.')
+            return
+        try:
+            gemini_key = normalize_gemini_key(self.txt_gemini_key.text())
+        except ValueError as exc:
+            QMessageBox.warning(self, 'API key Gemini', str(exc))
+            return
         # General
         self.settings.app_config["output_dir"] = self.txt_output_dir.text().strip()
         self.settings.app_config["default_timeout"] = self.spin_timeout.value()
@@ -194,7 +204,9 @@ class SettingsDialog(QDialog):
 
         # LLM
         self.settings.llm_config["provider"] = self.combo_llm_prov.currentText()
-        self.settings.llm_config["gemini_api_key"] = self.txt_gemini_key.text().strip()
+        if self.settings.llm_config.get('gemini_api_key') != gemini_key:
+            self.settings.llm_config['gemini_model'] = 'auto'
+        self.settings.llm_config["gemini_api_key"] = gemini_key
         self.settings.llm_config["openai_api_key"] = self.txt_openai_key.text().strip()
         self.settings.llm_config["anthropic_api_key"] = self.txt_anthropic_key.text().strip()
 
@@ -205,6 +217,21 @@ class SettingsDialog(QDialog):
         self.settings.tts_config["elevenlabs_api_key"] = self.txt_eleven_key.text().strip()
         self.settings.tts_config["fpt_api_key"] = self.txt_fpt_key.text().strip()
 
-        self.settings.save()
+        if self.settings.save() is False:
+            QMessageBox.warning(self, 'Không lưu được', 'Kiểm tra quyền ghi thư mục cấu hình. Chưa lưu thay đổi xuống máy.')
+            return
         QMessageBox.information(self, "Thành công", "Đã lưu toàn bộ cấu hình hệ thống!")
         self.accept()
+
+    def reject(self):
+        if self.gemini_panel.checking:
+            self.gemini_panel.message.setText('Đang kiểm tra key. Chờ hoàn tất trước khi đóng.')
+            return
+        super().reject()
+
+    def closeEvent(self, event):
+        if self.gemini_panel.checking:
+            self.gemini_panel.message.setText('Đang kiểm tra key. Chờ hoàn tất trước khi đóng.')
+            event.ignore()
+        else:
+            super().closeEvent(event)

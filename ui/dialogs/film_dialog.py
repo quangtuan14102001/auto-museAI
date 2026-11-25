@@ -27,6 +27,7 @@ from workers.film_script_worker import FilmScriptWorker
 from workers.film_storyboard_worker import FilmStoryboardWorker, apply_storyboard
 from workers.muse_storyboard_worker import MuseStoryboardWorker
 from ui.dialogs.film_references import FilmReferencesPanel, edit_shot_dialog, compare_reference_dialog
+from ui.gemini_key_panel import GeminiKeyPanel
 
 
 class FilmDialog(QDialog):
@@ -118,9 +119,14 @@ class FilmDialog(QDialog):
         self.idea.setPlaceholderText("Ví dụ: Một chú robot đi tìm khu vườn cuối cùng trên Trái Đất, kết thúc ấm áp.")
         form.addRow("Ý tưởng / prompt phim:", self.idea)
         self.script_source = QComboBox()
-        self.script_source.addItem("Muse · dùng tài khoản đã đăng nhập", "muse")
-        self.script_source.addItem("AI API · theo Cài đặt (Gemini / OpenAI / Claude)", "api")
+        self.script_source.addItem("Muse", "muse")
+        self.script_source.addItem("Gemini", "gemini")
         form.addRow("AI viết kịch bản:", self.script_source)
+        self.gemini_panel = GeminiKeyPanel(self.settings)
+        self.gemini_panel.setVisible(False)
+        form.addRow(self.gemini_panel)
+        self.script_source.currentIndexChanged.connect(self._script_source_changed)
+        self.gemini_panel.busy_changed.connect(self._key_check_busy)
         self.generate_script = QPushButton("Tạo kịch bản từ ý tưởng bằng AI")
         self.generate_script.clicked.connect(self._generate_script)
         form.addRow(self.generate_script)
@@ -342,7 +348,17 @@ class FilmDialog(QDialog):
         self._set_busy(False)
         self.tabs.setCurrentIndex(0)
 
+    def _script_source_changed(self):
+        self.gemini_panel.setVisible(self.script_source.currentData() == 'gemini')
+
+    def _key_check_busy(self, busy):
+        self.generate_script.setEnabled(not busy and not self.store and not self.working)
+        self.script_source.setEnabled(not busy and not self.store and not self.working)
+
     def _generate_script(self):
+        if self.gemini_panel.checking:
+            self.status.setText('Đang kiểm tra key Gemini. Chờ hoàn tất trước khi viết kịch bản.')
+            return
         if self.store or self.working or (self.script_worker and self.script_worker.isRunning()):
             return
         idea = self.idea.toPlainText().strip()
@@ -352,11 +368,17 @@ class FilmDialog(QDialog):
             return
         config = self.settings.llm_config
         use_muse = self.script_source.currentData() == 'muse'
-        provider = 'muse' if use_muse else config.get("provider", "gemini")
-        key = config.get(f"{provider}_api_key", "")
-        if not use_muse and (not key or provider not in ("gemini", "openai", "anthropic")):
-            self.status.setText("Cần cấu hình AI: vào Cài đặt → AI/LLM, chọn nhà cung cấp và nhập API key. Bạn vẫn có thể nhập kịch bản thủ công.")
-            return
+        provider, key = ('muse', '') if use_muse else ('gemini', '')
+        if not use_muse:
+            try:
+                key = self.gemini_panel.candidate()
+                if not key:
+                    raise ValueError('Nhập API key Gemini ngay bên dưới lựa chọn Gemini, rồi bấm Lưu key hoặc Kiểm tra key.')
+                key = self.settings.save_gemini_key(key)
+                self.gemini_panel.key.setText(key)
+            except ValueError as exc:
+                self.status.setText(str(exc))
+                return
         profile = None
         if use_muse:
             if self.busy_check():
@@ -623,6 +645,7 @@ class FilmDialog(QDialog):
         self.title.setReadOnly(busy or has_project)
         self.genre.setEnabled(not busy and not has_project)
         self.script_source.setEnabled(not busy and not has_project)
+        self.gemini_panel.set_workflow_busy(busy)
         self.seed_button.setEnabled(not busy and not has_project)
         self.anchors_button.setEnabled(not busy and not has_project)
         self.start_button.setEnabled(not busy and has_project)
@@ -893,7 +916,10 @@ class FilmDialog(QDialog):
             self.status.setText("Đang dừng và lưu tiến trình. Tác vụ đã gửi Muse không bị gửi lại tự động.")
 
     def closeEvent(self, event):
-        if self.script_worker and self.script_worker.isRunning():
+        if self.gemini_panel.checking:
+            self.status.setText('Đang kiểm tra key Gemini. Chờ hoàn tất trước khi đóng cửa sổ.')
+            event.ignore()
+        elif self.script_worker and self.script_worker.isRunning():
             self.status.setText("AI đang viết kịch bản. Chờ hoàn tất trước khi đóng cửa sổ.")
             event.ignore()
         elif self.working:

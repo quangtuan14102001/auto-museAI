@@ -2,11 +2,16 @@
 
 ## Trạng thái mã nguồn
 
-Bản cập nhật công khai **v1.2.15** chưa yêu cầu key theo lựa chọn của nhà phát hành
+Bản cập nhật công khai **v1.2.16** chưa yêu cầu key theo lựa chọn của nhà phát hành
 (`LICENSE_REQUIRED=False`). Code hệ thống key vẫn được giữ nhưng máy chủ chưa
 triển khai. Muốn phát hành bản thương mại có key, đọc [thiết lập bản quyền](docs/licensing.md),
 cấu hình URL HTTPS thật và đặt `LICENSE_REQUIRED=True` trước khi build.
 Không dùng cấu hình khách hàng hoặc cờ dòng lệnh để thay đổi chế độ bản quyền.
+
+Phim dài có hai nguồn viết kịch bản: **Muse** hoặc **Gemini**. Chọn Gemini để
+nhập/lưu/kiểm tra API key ngay trong màn hình này; key dùng chung với Cài đặt.
+Phép kiểm tra gọi tạo văn bản ngắn và có dùng quota API. Không cần key Gemini
+khi viết kịch bản bằng Muse.
 
 Repo không chứa cookie/profile Muse, API key, cấu hình người dùng, dự án phim,
 dữ liệu khách, DB bản quyền hoặc file build. Khi build Windows, cần đặt

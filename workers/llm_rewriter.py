@@ -3,6 +3,7 @@ import requests
 from typing import List, Dict
 from PyQt6.QtCore import QThread, pyqtSignal
 from utils.logger import log_event
+from core.gemini_api import normalize_gemini_key, gemini_error
 
 
 class LLMRewriterWorker(QThread):
@@ -23,7 +24,7 @@ class LLMRewriterWorker(QThread):
         self.num_scenes = num_scenes
         self.alias_tags = alias_tags
         self.provider = provider
-        self.api_key = api_key
+        self.api_key = normalize_gemini_key(api_key) if provider == 'gemini' else api_key
         self.model_name = model_name
 
     def run(self):
@@ -42,9 +43,11 @@ class LLMRewriterWorker(QThread):
         )
 
         try:
-            if not self.api_key:
+            if self.provider == 'offline_local':
                 # Built-in smart local heuristic scene generator
                 prompts = self._local_scene_generator()
+            elif not self.api_key:
+                raise ValueError('Chưa có API key cho nhà cung cấp đã chọn. Nhập key trong Cài đặt hoặc chọn offline_local để dùng bộ phân tách cục bộ.')
             elif self.provider == "gemini":
                 prompts = self._call_gemini(system_instruction)
             elif self.provider == "openai":
@@ -52,7 +55,7 @@ class LLMRewriterWorker(QThread):
             elif self.provider == "anthropic":
                 prompts = self._call_anthropic(system_instruction)
             else:
-                prompts = self._local_scene_generator()
+                raise ValueError('Nhà cung cấp AI không được hỗ trợ.')
 
             if (not isinstance(prompts, list) or len(prompts) != self.num_scenes
                     or any(not isinstance(prompt, str) or not prompt.strip() for prompt in prompts)):
@@ -60,10 +63,11 @@ class LLMRewriterWorker(QThread):
             log_event(f"Đã tạo thành công {len(prompts)} phân cảnh prompt từ kịch bản.", "SUCCESS")
             self.finished_signal.emit(prompts)
         except Exception as e:
-            log_event(f"Lỗi khi viết lại kịch bản với LLM: {e}", "WARNING")
-            log_event("Chuyển sang bộ phân tách kịch bản thông minh cục bộ...")
-            prompts = self._local_scene_generator()
-            self.finished_signal.emit(prompts)
+            message = str(e) if isinstance(e, ValueError) else 'Chưa gọi được dịch vụ AI. Kiểm tra mạng, API key và model.'
+            if self.api_key:
+                message = message.replace(self.api_key, '[ẩn]')
+            log_event('Chưa viết lại được kịch bản bằng AI; không tự thay bằng kết quả cục bộ.', 'WARNING')
+            self.error_signal.emit(message)
 
     def _local_scene_generator(self) -> List[str]:
         """Intelligent local fallback generator."""
@@ -97,10 +101,15 @@ class LLMRewriterWorker(QThread):
         }
         if getattr(self, "structured_schema", None):
             payload["generationConfig"].update(responseMimeType="application/json", responseSchema=self.structured_schema)
+        if getattr(self, 'max_output_tokens', None):
+            payload['generationConfig']['maxOutputTokens'] = self.max_output_tokens
         headers = {"x-goog-api-key": self.api_key}
         def generate(name):
-            return requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent",
-                                 json=payload, headers=headers, timeout=getattr(self, "request_timeout", 60))
+            try:
+                return requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent",
+                                     json=payload, headers=headers, timeout=getattr(self, "request_timeout", 60), allow_redirects=False)
+            except requests.RequestException:
+                raise ValueError('Chưa kết nối được Gemini. Kiểm tra mạng và thử lại; chưa xác định được key hợp lệ hay không.') from None
         resp = generate(model)
         if resp.status_code == 404:
             # A rejected model request created no content: discover accessible
@@ -108,13 +117,16 @@ class LLMRewriterWorker(QThread):
             model = self._available_gemini_model(exclude=model)
             resp = generate(model)
         if resp.status_code != 200:
-            messages = {401: "API key Gemini không hợp lệ.", 403: "API key chưa được phép dùng Gemini.",
-                        429: "Gemini đã hết hạn mức hoặc đang giới hạn lượt gọi. Kiểm tra quota trong Google AI Studio.",
-                        404: "Gemini chưa cung cấp model tạo văn bản khả dụng cho API key này."}
-            raise ValueError(messages.get(resp.status_code, f"Gemini chưa xử lý được yêu cầu (HTTP {resp.status_code}). Hãy thử lại sau."))
+            raise ValueError(gemini_error(resp))
         self.model_name = model
         data = resp.json()
-        raw_reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        candidates = data.get('candidates') or []
+        if not candidates:
+            raise ValueError('Gemini chưa trả nội dung, có thể yêu cầu bị chặn. Không có bằng chứng rằng API key sai.')
+        parts = candidates[0].get('content', {}).get('parts', [])
+        raw_reply = ''.join(part.get('text', '') for part in parts if not part.get('thought')).strip()
+        if not raw_reply:
+            raise ValueError('Gemini chưa trả văn bản. Thử lại hoặc kiểm tra model; không tự chuyển sang kịch bản cục bộ.')
         return self._extract_json_array(raw_reply)
 
     def _available_gemini_model(self, exclude=""):
@@ -123,10 +135,13 @@ class LLMRewriterWorker(QThread):
             params = {"pageSize": 100}
             if token:
                 params["pageToken"] = token
-            response = requests.get("https://generativelanguage.googleapis.com/v1beta/models",
-                                    headers={"x-goog-api-key": self.api_key}, params=params, timeout=30)
+            try:
+                response = requests.get("https://generativelanguage.googleapis.com/v1beta/models",
+                                        headers={"x-goog-api-key": self.api_key}, params=params, timeout=30, allow_redirects=False)
+            except requests.RequestException:
+                raise ValueError('Chưa kết nối được danh sách model Gemini. Kiểm tra mạng và thử lại.') from None
             if response.status_code != 200:
-                raise ValueError(f"Không đọc được danh sách model Gemini (HTTP {response.status_code}). Kiểm tra API key/quyền truy cập.")
+                raise ValueError(gemini_error(response))
             data = response.json()
             for item in data.get("models", []):
                 name = item.get("name", "").removeprefix("models/")

@@ -99,7 +99,8 @@ class MainWindow(QMainWindow):
         film = self.film_dialog
         return bool((self.automation_worker and self.automation_worker.isRunning())
                     or (self.left_panel.active_login_worker and self.left_panel.active_login_worker.isRunning())
-                    or (film and (film.working or (film.script_worker and film.script_worker.isRunning()))))
+                    or (film and (film.working or film.gemini_panel.checking
+                                  or (film.script_worker and film.script_worker.isRunning()))))
 
     def _open_app_update(self):
         if self._update_busy():
@@ -242,6 +243,10 @@ class MainWindow(QMainWindow):
         log_event("Hệ thống đã nghỉ. Sẵn sàng cho chu trình tiếp theo.")
 
     def closeEvent(self, event):
+        if self.film_dialog and self.film_dialog.gemini_panel.checking:
+            self.status_bar.showMessage('Đang kiểm tra key Gemini. Chờ hoàn tất trước khi đóng ứng dụng.')
+            event.ignore()
+            return
         guard = getattr(self, 'license_guard', None)
         if guard and guard.closing_is_pending():
             self.status_bar.showMessage('Đang hoàn tất kiểm tra bản quyền trước khi đóng…')

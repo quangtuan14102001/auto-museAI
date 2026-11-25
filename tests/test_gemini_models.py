@@ -36,3 +36,32 @@ class GeminiModelTests(unittest.TestCase):
                 self.worker("chosen-model")._call_gemini("instruction")
             self.assertEqual(post.call_count, 1)
             get.assert_not_called()
+
+    def test_invalid_key_400_is_recognized_without_leaking_body(self):
+        response=Mock(status_code=400)
+        response.json.return_value={'error':{'message':'test-key','details':[{'reason':'API_KEY_INVALID'}]}}
+        with patch('workers.llm_rewriter.requests.post',return_value=response):
+            with self.assertRaisesRegex(ValueError,'không hợp lệ') as error:
+                self.worker('chosen-model')._call_gemini('instruction')
+        self.assertNotIn('test-key',str(error.exception))
+
+    def test_text_parts_are_joined_and_thoughts_are_not_json_output(self):
+        response=Mock(status_code=200)
+        response.json.return_value={'candidates':[{'content':{'parts':[
+            {'text':'internal reasoning','thought':True}, {'text':'["sce'}, {'text':'ne"]'}]}}]}
+        with patch('workers.llm_rewriter.requests.post',return_value=response):
+            self.assertEqual(self.worker('chosen-model')._call_gemini('instruction'),['scene'])
+
+    def test_blocked_output_is_not_misreported_as_key_failure(self):
+        response=Mock(status_code=200)
+        response.json.return_value={'promptFeedback':{'blockReason':'SAFETY'}}
+        with patch('workers.llm_rewriter.requests.post',return_value=response):
+            with self.assertRaisesRegex(ValueError,'chưa trả nội dung'):
+                self.worker('chosen-model')._call_gemini('instruction')
+
+    def test_connection_error_does_not_leak_provider_url(self):
+        import requests
+        with patch('workers.llm_rewriter.requests.post',side_effect=requests.ConnectionError('https://example.com/test-key')):
+            with self.assertRaisesRegex(ValueError,'Chưa kết nối') as error:
+                self.worker('chosen-model')._call_gemini('instruction')
+        self.assertNotIn('test-key',str(error.exception))

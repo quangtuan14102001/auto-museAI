@@ -111,14 +111,18 @@ class LLMDictationDialog(QDialog):
         self.btn_generate.setEnabled(False)
         self.progress_bar.setVisible(True)
 
-        self.worker = LLMRewriterWorker(
-            raw_script=script_text,
-            num_scenes=self.spin_scenes.value(),
-            alias_tags=self.available_tags,
-            provider=provider,
-            api_key=api_key,
-            model_name=model_name
-        )
+        try:
+            self.worker = LLMRewriterWorker(
+                raw_script=script_text,
+                num_scenes=self.spin_scenes.value(),
+                alias_tags=self.available_tags,
+                provider=provider,
+                api_key=api_key,
+                model_name=model_name
+            )
+        except ValueError as exc:
+            self._on_error(str(exc))
+            return
         self.worker.finished_signal.connect(self._on_finished)
         self.worker.error_signal.connect(self._on_error)
         self.worker.start()

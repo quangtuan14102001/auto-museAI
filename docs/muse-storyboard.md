@@ -18,7 +18,18 @@ Lượt chạy lại bằng v1.2.10 từ thư mục gốc sau khi sửa cũng PA
 
 Trong Phim dài → Kịch bản & tham chiếu, chọn **AI viết kịch bản: Muse**,
 chọn tài khoản, nhập ý tưởng/thể loại/thời lượng và bấm tạo kịch bản.
-Không cần API key Gemini. Lựa chọn AI API cũ vẫn có sẵn.
+Không cần API key Gemini. Từ v1.2.16, phần này chỉ có hai nguồn rõ ràng: **Muse**
+và **Gemini**. Chọn Gemini thì nhập key ngay bên dưới, bấm **Lưu key** hoặc
+**Kiểm tra key**, rồi tạo kịch bản. Gemini luôn dùng key Gemini, không phụ thuộc
+nhà cung cấp chung trong Cài đặt. OpenAI/Claude vẫn có ở công cụ Kịch bản chung.
+
+Key được dùng chung với Cài đặt → LLM AI API, lưu trong cấu hình cục bộ (không
+đưa vào Git/bộ cài). Nút kiểm tra gửi một yêu cầu tạo văn bản ngắn, có dùng quota
+API; chỉ gọi models.list thành công chưa đủ để báo key tạo kịch bản được.
+Lưu key không tự gọi API. Key được chuẩn hóa khoảng trắng ngoài và dấu nháy bọc;
+app báo lỗi ghi cấu hình thay vì báo thành công khi chưa lưu xuống đĩa.
+Lỗi 429/503 được phân biệt với key sai/quyền truy cập; không chuyển sang bộ
+phân tách cục bộ rồi báo rằng Gemini đã viết thành công.
 
 Muse nhận yêu cầu chỉ viết JSON bằng văn bản, không tạo ảnh/video. Kết quả
 được kiểm tra cùng luồng storyboard hiện có: số clip, ID nhân vật/địa điểm,

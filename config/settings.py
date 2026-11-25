@@ -3,6 +3,7 @@ import sys
 import shutil
 import json
 import logging
+import tempfile
 from typing import Dict, List, Optional
 from core.models import ProfileItem, AliasItem, TaskItem
 from core.selectors import MuseSelectors
@@ -149,6 +150,7 @@ class SettingsManager:
         return preferred
 
     def save(self):
+        temporary = None
         try:
             for retired_key in ("github_repo", "auto_check_update"):
                 self.app_config.pop(retired_key, None)
@@ -174,10 +176,36 @@ class SettingsManager:
                 "aliases": [a.to_dict() for a in self.aliases],
                 "tasks": [t.to_dict() for t in self.tasks]
             }
-            with open(self.config_path, "w", encoding="utf-8") as f:
+            descriptor, temporary = tempfile.mkstemp(prefix='.project-config-', suffix='.tmp',
+                                                      dir=os.path.dirname(self.config_path))
+            with os.fdopen(descriptor, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temporary, self.config_path)
+            return True
         except Exception as e:
             logger.error(f"Error saving config to {self.config_path}: {e}")
+            return False
+        finally:
+            if temporary and os.path.exists(temporary):
+                try:
+                    os.unlink(temporary)
+                except OSError:
+                    pass
+
+    def save_gemini_key(self, key):
+        from core.gemini_api import normalize_gemini_key
+        key = normalize_gemini_key(key)
+        before = self.llm_config.copy()
+        self.llm_config['gemini_api_key'] = key
+        if before.get('gemini_api_key') != key:
+            self.llm_config['gemini_model'] = 'auto'
+        if self.save() is False:
+            self.llm_config.clear()
+            self.llm_config.update(before)
+            raise ValueError('Không lưu được key vào cấu hình. Kiểm tra quyền ghi thư mục app; key cũ vẫn được giữ.')
+        return key
 
     def get_alias_dict(self) -> Dict[str, AliasItem]:
         return {a.tag: a for a in self.aliases}
