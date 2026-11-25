@@ -36,6 +36,7 @@ class FilmGenreTests(unittest.TestCase):
         self.assertIn("end_state", api.call_args.args[0])
         self.assertIn("mục tiêu hành trình", api.call_args.args[0].lower())
         self.assertIn("Tự rà soát trước khi trả JSON", api.call_args.args[0])
+        self.assertIn('QUY TRÌNH BIÊN KỊCH VÀ PHÂN CẢNH', api.call_args.args[0])
 
     def test_all_selectable_genres_have_distinct_authoring_guides(self):
         self.assertEqual(set(FILM_GENRES[1:]), set(GENRE_PROFILES))
@@ -83,6 +84,7 @@ class FilmGenreTests(unittest.TestCase):
             self.assertIn('Thể loại phim: Trinh thám', prompt)
             self.assertIn('Robot xanh, mắt tròn', prompt)
             self.assertIn('Đây là ảnh chuẩn', prompt)
+            self.assertIn('HỒ SƠ ẢNH CHUẨN', prompt)
             self.assertEqual(project.references[0].generation_status, 'READY')
 
     def test_genre_round_trip_and_video_prompt(self):

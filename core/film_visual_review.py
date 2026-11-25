@@ -6,6 +6,9 @@ from PyQt6.QtGui import QImage
 import requests
 from workers.llm_rewriter import LLMRewriterWorker
 from core.film_project import shot_reference_assets
+from core.film_skills import skill_instruction, skill_provenance
+from utils.film_media import extract_frame_at
+from pathlib import Path
 
 
 def image_part(path):
@@ -19,23 +22,41 @@ def image_part(path):
     return {"inlineData": {"mimeType": "image/jpeg", "data": base64.b64encode(bytes(buffer.data())).decode()}}
 
 
-def review_shot(store, shot, config):
+def review_shot(store, shot, config, stop=None):
     key = config.get("gemini_api_key", "")
     if not key:
         raise ValueError("Cần API key Gemini để đối chiếu hình ảnh.")
     files, audit = shot_reference_assets(store, shot)
     if not files:
         raise ValueError("Clip chưa được gán nhân vật/bối cảnh có ảnh chuẩn để đối chiếu.")
-    parts = [{"text": "Đối chiếu ảnh CHUẨN được đánh nhãn với hai ảnh KẾT QUẢ VIDEO. "
+    parts = [{"text": skill_instruction('review') + "\nĐối chiếu ảnh CHUẨN được đánh nhãn với các KHUNG MẪU VIDEO. "
              "Chỉ kiểm tra nhận dạng, màu sắc/trang phục/đạo cụ đặc trưng và bố cục/vật mốc của địa điểm. "
              "Đừng coi đổi tư thế, góc máy, cỡ cảnh là sai nhân vật. Ảnh nhân vật không khóa nền. "
              "Nếu thấy lệch hoặc không đủ bằng chứng hãy dùng verdict=review; chỉ pass khi có đủ bằng chứng. "
-             "Không phán đoán chuyển động giữa hai ảnh, không khẳng định đã kiểm tra toàn bộ video. "
+             "Không phán đoán chuyển động giữa các ảnh, không khẳng định đã kiểm tra toàn bộ video. "
              f"Hành động dự kiến: {shot.prompt}. Đầu: {shot.start_state}. Cuối: {shot.end_state}. "
-             'Trả JSON duy nhất: {"verdict":"pass hoặc review","summary":"nhận xét tiếng Việt","issues":["vấn đề"]}.'}]
+             'Trả JSON duy nhất: {"verdict":"pass hoặc review","summary":"nhận xét tiếng Việt",'
+             '"issues":["vấn đề kèm nhãn ảnh bằng chứng"],'
+             '"correction":"none hoặc reference hoặc shot_plan hoặc generation hoặc capability hoặc manual"}.'}]
     for path, item in zip(files, audit):
         parts.extend([{"text": f"CHUẨN {item['kind']}: {item['name']}"}, image_part(path)])
-    for name, relative in [("KẾT QUẢ VIDEO: đầu clip", shot.first_frame), ("KẾT QUẢ VIDEO: cuối clip", shot.last_frame)]:
+    shot_index = next(i for i, item in enumerate(store.project.shots) if item.id == shot.id)
+    previous_evidence = None
+    if shot.continuation and shot_index > 0:
+        previous = store.project.shots[shot_index-1]
+        if previous.last_frame:
+            parts.extend([{'text':'BÀN GIAO: khung cuối clip trước'}, image_part(store.asset(previous.last_frame))])
+            previous_evidence = {'path': previous.last_frame, 'sha256': store.digest(store.asset(previous.last_frame))}
+    samples = [('KẾT QUẢ VIDEO: đầu clip', shot.first_frame)]
+    clip = Path(store.asset(shot.clip))
+    for fraction in (.25, .5, .75):
+        if stop and stop():
+            raise InterruptedError('Đã dừng đối chiếu clip.')
+        sample = extract_frame_at(str(clip), clip.with_name(clip.stem + f'_qa{int(fraction*100):02d}.png'),
+                                  shot.timeline_seconds * fraction, stop)
+        samples.append((f'KẾT QUẢ VIDEO: {int(fraction*100)}% clip', store.relative(sample)))
+    samples.append(('KẾT QUẢ VIDEO: cuối clip', shot.last_frame))
+    for name, relative in samples:
         parts.extend([{"text": name}, image_part(store.asset(relative))])
     client = LLMRewriterWorker("", 0, [], "gemini", key, config.get("gemini_model", "auto"))
     model = client.model_name
@@ -58,8 +79,16 @@ def review_shot(store, shot, config):
     if (data.get("verdict") not in ("pass", "review") or not isinstance(data.get("summary"), str)
             or not isinstance(data.get("issues"), list) or any(not isinstance(x, str) for x in data["issues"])):
         raise ValueError("Kết quả đối chiếu Gemini không hợp lệ.")
-    if data["issues"]:
+    correction = data.get('correction', 'manual' if data['verdict'] == 'review' else 'none')
+    if correction not in ('none', 'reference', 'shot_plan', 'generation', 'capability', 'manual'):
+        raise ValueError('Kết quả đối chiếu có đề xuất sửa không hợp lệ.')
+    if data["issues"] and correction == 'none':
+        correction = 'manual'
+    if data["issues"] or correction != 'none':
         data["verdict"] = "review"
-    return {**data, "model": model, "scope": "first_and_last_frames_only", "references": audit,
+    return {**data, 'correction': correction, "model": model, "scope": "five_sampled_frames_only", "references": audit,
+            'skills': skill_provenance(),
+            'previous_frame': previous_evidence,
+            'samples': [{'label': name, 'path': path, 'sha256': store.digest(store.asset(path))} for name,path in samples],
             "first_sha256": store.digest(store.asset(shot.first_frame)),
             "last_sha256": store.digest(store.asset(shot.last_frame))}

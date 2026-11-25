@@ -113,6 +113,21 @@ def extract_frame(source, destination, last=False, stop=None):
     return str(destination)
 
 
+def extract_frame_at(source, destination, seconds, stop=None):
+    """Decode one frame at a known timeline position, for sampled visual QA."""
+    if seconds < 0:
+        raise ValueError('Thời điểm khung hình phải không âm.')
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='.frame-', dir=destination.parent) as temp:
+        output = str(Path(temp)/'frame.png')
+        run_ffmpeg(['-y', '-ss', str(seconds), '-i', source, '-map', '0:v:0',
+                    '-an', '-frames:v', '1', output], stop)
+        validate_output(output, JobMode.TEXT_TO_IMAGE.value)
+        os.replace(output, destination)
+    return str(destination)
+
+
 def assemble_film(store, destination, music="", narration="", keep_clip_audio=True, stop=None, progress=None):
     project = store.project
     if not project.ready_to_export:

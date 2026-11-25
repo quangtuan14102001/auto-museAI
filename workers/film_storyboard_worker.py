@@ -8,6 +8,7 @@ from PyQt6.QtCore import pyqtSignal
 from workers.llm_rewriter import LLMRewriterWorker
 from core.film_project import plan_film, FilmReference, validate_continuity
 from core.film_genres import genre_instruction, FILM_CONTENT_GUIDANCE
+from core.film_skills import skill_instruction
 from core.storyboard_json import decode_storyboard_json, InvalidStoryboardJSON
 from core.film_content import inspect_project, describe_issues
 
@@ -213,7 +214,7 @@ class FilmStoryboardWorker(LLMRewriterWorker):
             f"Lập phim {self.seconds} giây gồm đúng {self.num_scenes} clip, mỗi clip {self.clip_seconds} giây "
             "(clip cuối sẽ được cắt nếu dư). Viết hành động riêng biệt cho từng clip, có mở đầu, diễn biến, kết thúc. "
             + FILM_CONTENT_GUIDANCE +
-            f"{genre_instruction(self.genre)} Quy tắc: {self.notes}. Trả duy nhất JSON object theo mẫu: "
+            f"{genre_instruction(self.genre)} {skill_instruction('storyboard')} Quy tắc: {self.notes}. Trả duy nhất JSON object theo mẫu: "
             '{"characters":[{"id":"robot","name":"Rô","description":"ngoại hình, quần áo, màu sắc cố định"}],'
             '"locations":[{"id":"forest","name":"Khu rừng","description":"bố cục, vật mốc, ánh sáng cố định"}],'
             '"shots":[{"action":"Hành động và chuyển động máy riêng của clip", "sequence":1,'

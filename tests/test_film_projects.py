@@ -212,6 +212,16 @@ class FilmGenerationTests(unittest.IsolatedAsyncioTestCase, Fixture):
             self.assertTrue(store.project.shots[0].error)
             self.assertFalse(store.project.ready_to_export)
 
+    async def test_visual_pass_only_auto_approves_when_manual_review_is_off(self):
+        for manual in (False, True):
+            store = self.store(f'visual-pass-{manual}', 5, review=manual)
+            store.project.visual_review_enabled = True
+            worker = self.worker(store)
+            with patch('core.film_visual_review.review_shot', return_value={'verdict':'pass','summary':'OK','issues':[]}):
+                await worker._prepare_and_review(0, self.source)
+            self.assertEqual(store.project.shots[0].status, 'REVIEW' if manual else 'APPROVED')
+            self.assertEqual(store.project.ready_to_export, not manual)
+
     async def test_sequential_generation_passes_actual_last_frame_to_next_clip(self):
         store = self.store("sequential", 6, review=False)
         worker = self.worker(store)
@@ -272,6 +282,7 @@ class FilmGenerationTests(unittest.IsolatedAsyncioTestCase, Fixture):
         await worker._before_submit(Page(), TaskItem("id", "scene"), "Actual submitted prompt")
         saved = json.loads(store.manifest.read_text(encoding="utf-8"))
         self.assertEqual(saved["shots"][0]["submitted_prompt"], "Actual submitted prompt")
+        self.assertEqual(len(saved['production_skills']['sources']), 4)
         self.assertTrue(worker.submitted)
 
 

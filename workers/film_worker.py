@@ -11,6 +11,7 @@ from playwright.async_api import async_playwright
 from core.film_project import film_prompt, validate_continuity, shot_reference_assets
 from core.film_content import inspect_project, describe_issues
 from core.film_genres import genre_instruction
+from core.film_skills import skill_instruction, skill_provenance
 from core.models import TaskItem, JobMode
 from core.media_output import validate_output, build_generation_prompt
 from utils.film_media import normalize_clip, extract_frame, assemble_film
@@ -33,11 +34,12 @@ def prepare_shot(store, index, source, stop=None):
     shot.clip, shot.first_frame, shot.last_frame = map(store.relative, (clip, first, last))
     shot.clip_sha256 = store.digest(clip)
     shot.last_frame_sha256 = store.digest(last)
-    shot.status = "REVIEW" if project.review_required else "APPROVED"
-    shot.approved_by = "" if project.review_required else "automatic"
+    needs_review = project.review_required or project.visual_review_enabled
+    shot.status = "REVIEW" if needs_review else "APPROVED"
+    shot.approved_by = "" if needs_review else "automatic"
     shot.error = ""
     project.export_file = ""
-    project.state = "REVIEW" if project.review_required else "READY"
+    project.state = "REVIEW" if needs_review else "READY"
     store.save()
 
 
@@ -73,6 +75,7 @@ class FilmWorker(AutomationWorker):
             self.changed.emit()
 
     async def _before_submit(self, page, task, prompt):
+        self.store.project.production_skills = skill_provenance()
         self.submitted = True
         if self.current_reference is not None:
             self.current_reference.submitted_prompt = prompt
@@ -166,6 +169,7 @@ class FilmWorker(AutomationWorker):
             prompt = (f"Tạo ảnh chuẩn duy nhất cho {'nhân vật' if ref.kind == 'character' else 'bối cảnh'} {ref.name}. "
                       f"{ref.description}. Phong cách chung: {self.store.project.continuity_notes}. "
                       + genre_instruction(self.store.project.genre, stage="reference") + "\n"
+                      + skill_instruction('reference') + "\n"
                       + ("Chỉ nhân vật này, toàn thân, nền đơn giản, ánh sáng rõ, không chữ, không collage."
                          if ref.kind == "character" else "Toàn cảnh địa điểm, giữ bố cục và ánh sáng rõ, không thêm nhân vật, không chữ."))
             task = TaskItem(f"ref_{ref.id}", prompt, mode=JobMode.TEXT_TO_IMAGE.value,
@@ -300,19 +304,24 @@ class FilmWorker(AutomationWorker):
         if not project.visual_review_enabled:
             return
         from core.film_visual_review import review_shot
-        self.message.emit(f"Gemini đang đối chiếu ảnh chuẩn và đầu/cuối clip {index + 1}…")
+        self.message.emit(f"Gemini đang đối chiếu ảnh chuẩn và 5 khung mẫu clip {index + 1}…")
         try:
             if self._stop_requested:
                 raise InterruptedError()
-            shot.visual_review = await asyncio.to_thread(review_shot, self.store, shot, self.review_config)
+            shot.visual_review = await asyncio.to_thread(review_shot, self.store, shot, self.review_config,
+                                                        lambda: self._stop_requested)
             if shot.visual_review["verdict"] != "pass":
                 shot.status, shot.approved_by = "REVIEW", ""
                 shot.error = "Cần xem lại: " + shot.visual_review["summary"]
+            elif not project.review_required:
+                shot.status, shot.approved_by, shot.error = "APPROVED", "automatic_visual_review", ""
         except Exception:
             shot.status, shot.approved_by = "REVIEW", ""
-            shot.error = "Chưa đối chiếu được hình ảnh bằng Gemini. Xem ảnh chuẩn và khung đầu/cuối trước khi duyệt."
+            shot.error = "Chưa đối chiếu được hình ảnh bằng Gemini. Xem ảnh chuẩn và video trước khi duyệt."
         if shot.status == "REVIEW":
             project.state = "REVIEW"
+        else:
+            project.state = "READY"
         self.store.save()
 
 

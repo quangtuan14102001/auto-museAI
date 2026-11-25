@@ -243,6 +243,16 @@ def compare_reference_dialog(owner):
     entries.extend((f"Ảnh đã gửi · {i+1}", image) for i, image in enumerate(shot.input_refs))
     entries.extend((title, image) for title, image in [("Kết quả · khung đầu", shot.first_frame),
                                                       ("Kết quả · khung cuối", shot.last_frame)] if image)
+    shown = {image for _, image in entries}
+    report = shot.visual_review
+    previous = report.get('previous_frame')
+    if previous and previous.get('path') not in shown:
+        entries.append(('Bàn giao · khung cuối clip trước', previous['path']))
+        shown.add(previous['path'])
+    for sample in report.get('samples', []):
+        if sample.get('path') and sample['path'] not in shown:
+            entries.append((sample['label'], sample['path']))
+            shown.add(sample['path'])
     for i, (title, image) in enumerate(entries):
         column = QVBoxLayout()
         column.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -259,7 +269,16 @@ def compare_reference_dialog(owner):
     state.setWordWrap(True)
     layout.addWidget(state)
     if shot.visual_review:
-        result = QLabel("Gemini (chỉ khung đầu/cuối): " + shot.visual_review.get("summary", ""))
+        scope = '5 khung mẫu' if report.get('scope') == 'five_sampled_frames_only' else 'khung đầu/cuối'
+        correction = {'none':'Không đề xuất sửa', 'reference':'Kiểm tra ảnh chuẩn', 'shot_plan':'Sửa kế hoạch cảnh',
+                      'generation':'Kiểm tra lần tạo clip', 'capability':'Kiểm tra khả năng công cụ', 'manual':'Xem lại thủ công'}
+        text = f"Gemini (chỉ {scope}): " + report.get('summary', '')
+        if report.get('issues'):
+            text += '\n' + '\n'.join(report['issues'])
+        if report.get('correction') in correction:
+            text += '\nĐề xuất: ' + correction[report['correction']]
+        result = QLabel(text)
+        result.setTextFormat(Qt.TextFormat.PlainText)
         result.setWordWrap(True)
         layout.addWidget(result)
     close = QPushButton("Đóng")

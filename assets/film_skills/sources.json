@@ -1,0 +1,97 @@
+{
+  "version": "1",
+  "sources": [
+    {
+      "id": "universal",
+      "repository": "svenkatreddy/universal-video-skills",
+      "commit": "0c384d395290eaebf416e4bcfc4a7bb19b20aaac",
+      "license": "MIT",
+      "files": [
+        {
+          "path": "upstream/universal/LICENSE",
+          "sha256": "dbb3157c8ee4243696d46fc402a13aee1a70b88079a44de41ee133e027625517",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "upstream/universal/skills/video-prompt-craft/SKILL.md",
+          "sha256": "b42a14ccee03dd16b46142bc330333f512e7a55db659ec2db07ab820395777d4",
+          "upstream_path": "skills/video-prompt-craft/SKILL.md"
+        },
+        {
+          "path": "upstream/universal/skills/cinematic-direction/SKILL.md",
+          "sha256": "37920e5fb04baf5715f0ea8b9733a18ebcb3588b95f2d40c564024249718858e",
+          "upstream_path": "skills/cinematic-direction/SKILL.md"
+        },
+        {
+          "path": "upstream/universal/skills/character-consistency/SKILL.md",
+          "sha256": "5e75c9e89bf62c75a096bfb701c7809121f7f5c3ec4a5cf4402a9bc6b1bcdc37",
+          "upstream_path": "skills/character-consistency/SKILL.md"
+        },
+        {
+          "path": "upstream/universal/skills/story-and-shots/SKILL.md",
+          "sha256": "5bc9523c4b2e789afaffaa8f56cbd5d9425cbe3def5d3f2dfd9120275bf50a9d",
+          "upstream_path": "skills/story-and-shots/SKILL.md"
+        }
+      ]
+    },
+    {
+      "id": "drama",
+      "repository": "zenstory-ai/drama-skills",
+      "commit": "82a1ce5750138ada79be6904d1ec72d6a285105d",
+      "license": "MIT",
+      "files": [
+        {
+          "path": "upstream/drama/LICENSE",
+          "sha256": "840bdb5ba503ca4397f5a6049e6e8da182330f83bb70006d5656d7dd00674e9b",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "upstream/drama/skills/short-drama-write/SKILL.md",
+          "sha256": "4e9645e99e817b593871abaa6c05ef5e52064dced0afc12b0abd22126bee5f67",
+          "upstream_path": "skills/short-drama-write/SKILL.md"
+        },
+        {
+          "path": "upstream/drama/skills/short-drama-storyboard/SKILL.md",
+          "sha256": "dc075ff0e294be9b0ea6e0dc13106d10326eb9b7d751ff980fe4eaca62ac25e8",
+          "upstream_path": "skills/short-drama-storyboard/SKILL.md"
+        }
+      ]
+    },
+    {
+      "id": "evaluate",
+      "repository": "sb-dev/video-production-skills",
+      "commit": "5e82bb9a188d3cfc83cae0979cc39737011411b9",
+      "license": "Apache-2.0",
+      "files": [
+        {
+          "path": "upstream/evaluate/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "upstream/evaluate/skills/video-evaluate/SKILL.md",
+          "sha256": "5354acf8f73fcb7120e4552654518955f505cdd2f9c1b8f158073ceb6f582580",
+          "upstream_path": "skills/video-evaluate/SKILL.md"
+        }
+      ]
+    },
+    {
+      "id": "assets",
+      "repository": "g0dam/video-studio-skills",
+      "commit": "a99151bc42f8de7a73a6ca3caa2ab10a6a653a46",
+      "license": "MIT",
+      "files": [
+        {
+          "path": "upstream/assets/LICENSE",
+          "sha256": "1bff7f11bdf8b273480c2b02259baecea759472fd2328da0dbe3278906feaf84",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "upstream/assets/video-asset-bible/SKILL.md",
+          "sha256": "2e41a28fd7393d64e6d24b65613610560a2d3604e2166d29ac3894b8a2e2eda5",
+          "upstream_path": "video-asset-bible/SKILL.md"
+        }
+      ]
+    }
+  ]
+}

@@ -1,2 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+# Preserve pinned upstream bytes and hashes across Windows/macOS checkouts.
+assets/film_skills/** -text

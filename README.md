@@ -14,6 +14,11 @@ dữ liệu khách, DB bản quyền hoặc file build. Khi build Windows, cần
 Bộ cài cho người dùng nằm ở GitHub Releases; quy trình phát hành ở
 [hướng dẫn cập nhật](docs/updates.md).
 
+Luồng phim đã tích hợp adapter theo giai đoạn từ 8 skill cộng đồng (4 repo,
+có bản chốt và giấy phép), cùng bộ hướng dẫn riêng cho 11 thể loại. Xem
+[nguồn, phạm vi và cách áp dụng](docs/film-skills.md). Phần này mới ở mã nguồn,
+chưa có trong EXE v1.2.14 đã phát hành.
+
 ## Phim dài (bản 1.1.0)
 
 Mở **Phim dài** để lập kế hoạch nhiều clip tiếp nối bằng khung hình cuối, duyệt từng clip,

@@ -84,6 +84,7 @@ class FilmProject:
     references: list[FilmReference] = field(default_factory=list)
     visual_review_enabled: bool = False
     genre: str = ""
+    production_skills: dict = field(default_factory=dict)
 
     @property
     def ready_to_export(self):
@@ -254,8 +255,10 @@ class FilmStore:
 
 def film_prompt(project, shot):
     from core.film_genres import genre_instruction
+    from core.film_skills import skill_instruction
     lock = f"Quy tắc xuyên suốt: {project.continuity_notes}\n" if project.continuity_notes else ""
     lock += genre_instruction(project.genre, stage="video") + "\n" if project.genre else ""
+    lock += skill_instruction('video') + "\n"
     if shot.continuation:
         direction = (
             "Ảnh tham chiếu đầu tiên là KHUNG HÌNH CUỐI của clip ngay trước. "
