@@ -2,7 +2,7 @@
 
 ## Trạng thái mã nguồn
 
-Bản cập nhật công khai **v1.2.16** chưa yêu cầu key theo lựa chọn của nhà phát hành
+Bản cập nhật công khai **v1.2.17** chưa yêu cầu key theo lựa chọn của nhà phát hành
 (`LICENSE_REQUIRED=False`). Code hệ thống key vẫn được giữ nhưng máy chủ chưa
 triển khai. Muốn phát hành bản thương mại có key, đọc [thiết lập bản quyền](docs/licensing.md),
 cấu hình URL HTTPS thật và đặt `LICENSE_REQUIRED=True` trước khi build.

@@ -2,7 +2,7 @@
 Application version and semantic comparison utilities.
 """
 
-APP_VERSION = "1.2.16"
+APP_VERSION = "1.2.17"
 
 
 def parse_semver(v: str) -> tuple:

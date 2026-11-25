@@ -1,5 +1,5 @@
 #define MyAppName "AutoMuseAI Studio"
-#define MyAppVersion "1.2.16"
+#define MyAppVersion "1.2.17"
 #define MyAppPublisher "AutoMuseAI"
 #define MyAppExeName "AutoMuseAI.exe"
 

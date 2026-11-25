@@ -23,6 +23,11 @@ Nguồn này được tích hợp trong EXE. Cấu hình cũ không có URL vẫ
 
 ## Mỗi lần phát hành
 
+Build Windows dùng PATH cô lập (Python + Windows) và kiểm tra bundle để chặn
+`ucrtbase.dll` lấy nhầm từ môi trường công cụ. Trước khi phát hành, phải mở EXE
+thật, xác nhận cửa sổ chính và màn hình Phim dài hoạt động; chỉ đọc nội dung
+archive hoặc chạy test bằng Python chưa đủ phát hiện lỗi DLL lúc khởi động.
+
 Nguồn đang dùng: `quangtuan14102001/auto-museAI` (GitHub Releases công khai).
 Sau khi tạo bộ cài và metadata, chạy `python tools/publish_update.py` trên máy
 phát hành đã đăng nhập GitHub. Công cụ tải đủ hai file lên bản nháp rồi mới
