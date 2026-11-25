@@ -2,11 +2,11 @@
 
 ## Trạng thái mã nguồn
 
-Bản EXE đã phát hành gần nhất: **v1.2.14**. Mã nguồn mới hơn có thêm hệ thống
-key bản quyền; phần này chưa triển khai máy chủ và chưa phát hành bản EXE mới.
-Đọc [thiết lập bản quyền](docs/licensing.md) trước khi chạy hoặc build: cần cấu
-hình URL HTTPS của dịch vụ, nếu chưa cấu hình app sẽ dừng ở màn hình kích hoạt.
-Không có chế độ tự bỏ qua bản quyền trong mã nguồn.
+Bản cập nhật công khai **v1.2.15** chưa yêu cầu key theo lựa chọn của nhà phát hành
+(`LICENSE_REQUIRED=False`). Code hệ thống key vẫn được giữ nhưng máy chủ chưa
+triển khai. Muốn phát hành bản thương mại có key, đọc [thiết lập bản quyền](docs/licensing.md),
+cấu hình URL HTTPS thật và đặt `LICENSE_REQUIRED=True` trước khi build.
+Không dùng cấu hình khách hàng hoặc cờ dòng lệnh để thay đổi chế độ bản quyền.
 
 Repo không chứa cookie/profile Muse, API key, cấu hình người dùng, dự án phim,
 dữ liệu khách, DB bản quyền hoặc file build. Khi build Windows, cần đặt
@@ -16,8 +16,8 @@ Bộ cài cho người dùng nằm ở GitHub Releases; quy trình phát hành �
 
 Luồng phim đã tích hợp adapter theo giai đoạn từ 8 skill cộng đồng (4 repo,
 có bản chốt và giấy phép), cùng bộ hướng dẫn riêng cho 11 thể loại. Xem
-[nguồn, phạm vi và cách áp dụng](docs/film-skills.md). Phần này mới ở mã nguồn,
-chưa có trong EXE v1.2.14 đã phát hành.
+[nguồn, phạm vi và cách áp dụng](docs/film-skills.md). Có trong bản v1.2.15;
+EXE v1.2.14 trở về trước chưa có phần này.
 
 ## Phim dài (bản 1.1.0)
 

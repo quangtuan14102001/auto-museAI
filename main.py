@@ -107,18 +107,22 @@ def main():
     try:
         log_event("Khởi động ứng dụng Auto Muse AI Studio Batch Runner...")
         
-        from core.licensing import LicenseSession
-        from ui.dialogs.license_dialog import LicenseDialog
-        from PyQt6.QtWidgets import QDialog
-        license_session = LicenseSession()
-        activation = LicenseDialog(license_session)
-        if license_session.key:
-            QTimer.singleShot(0, activation.check)
-        if activation.exec() != QDialog.DialogCode.Accepted or not license_session.valid:
-            sys.exit(0)
+        from core.license_source import LICENSE_REQUIRED
+        license_session = None
+        if LICENSE_REQUIRED:
+            from core.licensing import LicenseSession
+            from ui.dialogs.license_dialog import LicenseDialog
+            from PyQt6.QtWidgets import QDialog
+            license_session = LicenseSession()
+            activation = LicenseDialog(license_session)
+            if license_session.key:
+                QTimer.singleShot(0, activation.check)
+            if activation.exec() != QDialog.DialogCode.Accepted or not license_session.valid:
+                sys.exit(0)
         window = MainWindow()
-        from ui.license_guard import LicenseGuard
-        window.license_guard = LicenseGuard(license_session, window)
+        if license_session is not None:
+            from ui.license_guard import LicenseGuard
+            window.license_guard = LicenseGuard(license_session, window)
         # Set window icon explicitly
         for ic in icon_candidates:
             if ic and os.path.exists(ic):

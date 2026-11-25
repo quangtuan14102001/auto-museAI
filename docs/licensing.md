@@ -1,7 +1,9 @@
 # Bản quyền AutoMuseAI
 
-Hệ thống gồm EXE khách hàng và dịch vụ quản trị riêng. Chưa cấu hình URL dịch vụ
-thì bản mới khóa tại màn hình kích hoạt; không tự cấp key hoặc mở miễn phí.
+Hệ thống gồm EXE khách hàng và dịch vụ quản trị riêng. v1.2.15 phát hành công khai
+chưa yêu cầu key theo quyết định nhà phát hành (`LICENSE_REQUIRED=False`). Bản
+thương mại cần đặt `LICENSE_REQUIRED=True`; khi đó chưa cấu hình URL dịch vụ
+thì app khóa tại màn hình kích hoạt; không tự cấp key hoặc mở miễn phí.
 Các EXE v1.2.14 trở về trước đã phát hành không có cơ chế key, không thể khóa
 từ xa bằng tính năng mới. Không công bố bản thương mại trước khi dịch vụ sẵn sàng.
 
@@ -44,7 +46,8 @@ toàn; chỉ đặt lại máy không ngăn máy cũ dùng key để đăng ký 
 
 ## Ứng dụng
 
-Gắn domain vào `core/license_source.py` rồi build EXE và bộ cài mới. Chỉ URL
+Gắn domain vào `core/license_source.py`, bật `LICENSE_REQUIRED=True` rồi build
+EXE và bộ cài mới. Công cụ build từ chối bản có key nhưng thiếu URL HTTPS. Chỉ URL
 công khai được đóng gói; không có secret quản trị trong bản khách.
 App kiểm tra online trước khi mở, định kỳ mỗi 60 giây khi chạy. Không hỗ trợ
 offline: lỗi mạng/khóa/hết hạn thì dừng worker an toàn, khóa UI và yêu cầu kiểm
