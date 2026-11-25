@@ -10,6 +10,7 @@ from playwright.async_api import async_playwright
 
 from core.film_project import film_prompt, validate_continuity, shot_reference_assets
 from core.film_content import inspect_project, describe_issues
+from core.film_genres import genre_instruction
 from core.models import TaskItem, JobMode
 from core.media_output import validate_output, build_generation_prompt
 from utils.film_media import normalize_clip, extract_frame, assemble_film
@@ -164,6 +165,7 @@ class FilmWorker(AutomationWorker):
             self.message.emit(f"Chuẩn bị ảnh {'nhân vật' if ref.kind == 'character' else 'bối cảnh'}: {ref.name}")
             prompt = (f"Tạo ảnh chuẩn duy nhất cho {'nhân vật' if ref.kind == 'character' else 'bối cảnh'} {ref.name}. "
                       f"{ref.description}. Phong cách chung: {self.store.project.continuity_notes}. "
+                      + genre_instruction(self.store.project.genre, stage="reference") + "\n"
                       + ("Chỉ nhân vật này, toàn thân, nền đơn giản, ánh sáng rõ, không chữ, không collage."
                          if ref.kind == "character" else "Toàn cảnh địa điểm, giữ bố cục và ánh sáng rõ, không thêm nhân vật, không chữ."))
             task = TaskItem(f"ref_{ref.id}", prompt, mode=JobMode.TEXT_TO_IMAGE.value,

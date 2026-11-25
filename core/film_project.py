@@ -255,7 +255,7 @@ class FilmStore:
 def film_prompt(project, shot):
     from core.film_genres import genre_instruction
     lock = f"Quy tắc xuyên suốt: {project.continuity_notes}\n" if project.continuity_notes else ""
-    lock += genre_instruction(project.genre) + "\n" if project.genre else ""
+    lock += genre_instruction(project.genre, stage="video") + "\n" if project.genre else ""
     if shot.continuation:
         direction = (
             "Ảnh tham chiếu đầu tiên là KHUNG HÌNH CUỐI của clip ngay trước. "

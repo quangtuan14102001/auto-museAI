@@ -108,7 +108,7 @@ class FilmDialog(QDialog):
         self.genre.addItems(FILM_GENRES)
         self.genre.setEditable(True)
         self.genre.lineEdit().setMaxLength(120)
-        self.genre.setToolTip("Chọn thể loại hoặc nhập thể loại riêng. Đây là thể loại câu chuyện; phong cách hình ảnh khai báo ở phần khóa nhân vật/phong cách.")
+        self.genre.setToolTip("Mỗi thể loại có hướng dẫn riêng về cấu trúc, nhịp cảnh, hình ảnh và âm thanh. Có thể nhập kết hợp nhiều thể loại. Phong cách/nhận dạng cụ thể khai báo ở phần khóa nhân vật/phong cách.")
         form.addRow("Thể loại phim:", self.genre)
         self.idea = QTextEdit()
         self.idea.setMaximumHeight(70)
